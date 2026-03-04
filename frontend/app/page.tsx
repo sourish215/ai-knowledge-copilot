@@ -10,13 +10,17 @@ export default function Chat() {
 
   const ask = async () => {
 
-  const res = await fetch("http://localhost:8000/chat", {
+  const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/chat`, {
     method: "POST",
     headers: {
       "Content-Type": "application/json"
     },
     body: JSON.stringify({ question })
   })
+
+  if (!res.body) {
+    throw new Error("No response body")
+  }
 
   const reader = res.body.getReader()
   const decoder = new TextDecoder()

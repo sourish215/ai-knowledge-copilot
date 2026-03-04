@@ -4,7 +4,7 @@ import { useState } from "react"
 
 export default function Upload() {
 
-  const [file, setFile] = useState(null)
+  const [file, setFile] = useState<File | null>(null)
 
   const uploadFile = async () => {
     if (!file) return;
@@ -12,7 +12,7 @@ export default function Upload() {
     const formData = new FormData()
     formData.append("file", file)
 
-    const res = await fetch("http://localhost:8000/upload", {
+    const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/upload`, {
       method: "POST",
       body: formData
     })
@@ -28,8 +28,14 @@ export default function Upload() {
 
       <input
         type="file"
-        onChange={(e) => setFile(e.target.files[0])}
-      />
+        onChange={(e) => {
+            const files = e.target.files
+
+            if (!files || files.length === 0) return
+
+            setFile(files[0])
+        }}
+        />
 
       <button onClick={uploadFile}>
         Upload
