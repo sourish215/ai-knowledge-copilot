@@ -175,7 +175,7 @@ export default function Chat() {
 
 
         {/* CHAT AREA */}
-        <div className="flex-1 flex flex-col">
+        <div className="flex-1 flex flex-col min-h-0">
 
           {/* Messages */}
           <div className="flex-1 overflow-y-auto p-6 space-y-4">
