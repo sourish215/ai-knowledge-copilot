@@ -13,14 +13,33 @@ const TypingDots = () => (
 export default function Chat() {
 
   const [question, setQuestion] = useState("")
-
   const [messages, setMessages] = useState<
     { role: "user" | "assistant"; content: string }[]
   >([])
 
   const [loading, setLoading] = useState(false)
-
   const [streaming, setStreaming] = useState(false)
+
+  const [showUpload, setShowUpload] = useState(false)
+  const [file, setFile] = useState<File | null>(null)
+
+  const documents = []
+
+  const uploadFile = async () => {
+
+    if (!file) return
+
+    const formData = new FormData()
+    formData.append("file", file)
+
+    await fetch(`${process.env.NEXT_PUBLIC_API_URL}/upload`, {
+      method: "POST",
+      body: formData
+    })
+
+    setFile(null)
+    setShowUpload(false)
+  }
 
   const ask = async () => {
 
@@ -29,7 +48,6 @@ export default function Chat() {
     const userMessage = { role: "user" as const, content: question }
     const assistantMessage = { role: "assistant" as const, content: "" }
 
-    // Add messages before streaming
     setMessages((prev) => [...prev, userMessage, assistantMessage])
 
     setQuestion("")
@@ -38,9 +56,7 @@ export default function Chat() {
 
     const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/chat`, {
       method: "POST",
-      headers: {
-        "Content-Type": "application/json"
-      },
+      headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ question })
     })
 
@@ -68,8 +84,6 @@ export default function Chat() {
 
       setMessages((prev) => {
 
-        if (prev.length === 0) return prev
-
         const copy = [...prev]
         const lastIndex = copy.length - 1
 
@@ -83,25 +97,49 @@ export default function Chat() {
         return copy
       })
     }
+
     setStreaming(false)
     setLoading(false)
   }
 
   return (
-    <div className="min-h-screen bg-gray-100 flex flex-col items-center">
+    <div className="h-screen flex bg-gray-100">
 
-      {/* Header */}
-      <div className="w-full max-w-3xl p-4">
-        <h1 className="text-2xl font-bold text-gray-800">
-          AI Knowledge Copilot
-        </h1>
+      {/* SIDEBAR */}
+      <div className="w-64 bg-white border-r flex flex-col p-4">
+
+        <h2 className="text-lg font-semibold mb-4">
+          Documents
+        </h2>
+
+        <div className="space-y-2 flex-1 overflow-y-auto">
+
+          {documents.map((doc, i) => (
+            <div
+              key={i}
+              className="p-2 text-sm bg-gray-100 rounded-lg"
+            >
+              📄 {doc}
+            </div>
+          ))}
+
+        </div>
+
+        <button
+          onClick={() => setShowUpload(true)}
+          className="mt-4 bg-blue-600 text-white py-2 rounded-lg cursor-pointer hover:bg-blue-700"
+        >
+          Upload
+        </button>
+
       </div>
 
-      {/* Chat container */}
-      <div className="w-full max-w-3xl bg-white shadow-lg rounded-lg flex flex-col h-[70vh]">
+
+      {/* CHAT AREA */}
+      <div className="flex-1 flex flex-col">
 
         {/* Messages */}
-        <div className="flex-1 overflow-y-auto p-4 space-y-4">
+        <div className="flex-1 overflow-y-auto p-6 space-y-4">
 
           {messages.map((m, i) => (
             <div
@@ -117,24 +155,28 @@ export default function Chat() {
                     : "bg-gray-200 text-gray-800"
                 }`}
               >
+
                 {m.role === "assistant" && loading && i === messages.length - 1 ? (
                   <TypingDots />
                 ) : (
                   <>
                     {m.content}
+
                     {streaming && i === messages.length - 1 && (
                       <span className="animate-pulse">▌</span>
                     )}
                   </>
                 )}
+
               </div>
             </div>
           ))}
 
         </div>
 
-        {/* Input */}
-        <div className="border-t p-4 flex gap-2">
+
+        {/* INPUT */}
+        <div className="border-t bg-white p-4 flex gap-2">
 
           <input
             value={question}
@@ -147,7 +189,7 @@ export default function Chat() {
           <button
             onClick={ask}
             disabled={loading}
-            className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 disabled:bg-gray-400"
+            className="bg-blue-600 text-white px-4 py-2 rounded-lg cursor-pointer hover:bg-blue-700 disabled:bg-gray-400"
           >
             {loading ? "Thinking..." : "Ask"}
           </button>
@@ -155,6 +197,69 @@ export default function Chat() {
         </div>
 
       </div>
+
+
+      {/* UPLOAD MODAL */}
+      {showUpload && (
+        <div className="fixed inset-0 bg-black/40 flex items-center justify-center">
+
+          <div className="bg-white rounded-xl shadow-lg p-6 w-[400px]">
+
+            <h3 className="text-lg font-semibold mb-4">
+              Upload Document
+            </h3>
+
+            <label className="border-2 border-dashed border-gray-300 rounded-lg p-6 flex flex-col items-center justify-center cursor-pointer hover:border-blue-500 transition">
+
+              <input
+                type="file"
+                className="hidden"
+                onChange={(e) => {
+                  const files = e.target.files
+                  if (!files || files.length === 0) return
+                  setFile(files[0])
+                }}
+              />
+
+              <p className="text-gray-500 text-sm">
+                Click to select a file
+              </p>
+
+              <p className="text-xs text-gray-400 mt-1">
+                PDF, TXT, DOCX
+              </p>
+
+            </label>
+
+            {file && (
+              <p className="mt-2 text-sm text-gray-600">
+                📄 {file.name}
+              </p>
+            )}
+
+            <div className="flex justify-end gap-2 mt-4">
+
+              <button
+                onClick={() => setShowUpload(false)}
+                className="px-4 py-2 rounded-lg border cursor-pointer hover:bg-gray-100"
+              >
+                Cancel
+              </button>
+
+              <button
+                onClick={uploadFile}
+                disabled={!file}
+                className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:bg-gray-400 cursor-pointer disabled:cursor-not-allowed"
+              >
+                Upload
+              </button>
+
+            </div>
+
+          </div>
+
+        </div>
+      )}
 
     </div>
   )
