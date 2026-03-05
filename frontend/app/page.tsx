@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 
 const TypingDots = () => (
   <div className="flex gap-1 items-center">
@@ -19,11 +19,12 @@ export default function Chat() {
 
   const [loading, setLoading] = useState(false)
   const [streaming, setStreaming] = useState(false)
+  const [uploading, setUploading] = useState(false)
 
   const [showUpload, setShowUpload] = useState(false)
   const [file, setFile] = useState<File | null>(null)
 
-  const documents = []
+  const [documents, setDocuments] = useState<{ id: string; name: string }[]>([])
 
   const uploadFile = async () => {
 
@@ -32,13 +33,18 @@ export default function Chat() {
     const formData = new FormData()
     formData.append("file", file)
 
+    setUploading(true)
+
     await fetch(`${process.env.NEXT_PUBLIC_API_URL}/upload`, {
       method: "POST",
       body: formData
     })
 
     setFile(null)
+    setUploading(false)
     setShowUpload(false)
+
+    fetchDocuments()
   }
 
   const ask = async () => {
@@ -102,6 +108,19 @@ export default function Chat() {
     setLoading(false)
   }
 
+  const fetchDocuments = async () => {
+
+    const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/documents`)
+
+    const data = await res.json()
+
+    setDocuments(data)
+  }
+
+  useEffect(() => {
+    fetchDocuments()
+  }, [])
+
   return (
     <div className="h-screen flex bg-gray-100">
 
@@ -116,10 +135,15 @@ export default function Chat() {
 
           {documents.map((doc, i) => (
             <div
-              key={i}
-              className="p-2 text-sm bg-gray-100 rounded-lg"
+              key={doc.id}
+              title={doc.name}
+              className="group flex items-center gap-2 px-3 py-2 text-sm rounded-lg hover:bg-gray-200 transition"
             >
-              📄 {doc}
+              <span className="text-gray-500 shrink-0">📄</span>
+
+              <span className="flex-1 truncate text-gray-700 group-hover:text-gray-900">
+                {doc.name}
+              </span>
             </div>
           ))}
 
@@ -241,6 +265,7 @@ export default function Chat() {
 
               <button
                 onClick={() => setShowUpload(false)}
+                disabled={uploading}
                 className="px-4 py-2 rounded-lg border cursor-pointer hover:bg-gray-100"
               >
                 Cancel
@@ -248,7 +273,7 @@ export default function Chat() {
 
               <button
                 onClick={uploadFile}
-                disabled={!file}
+                disabled={!file || uploading}
                 className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:bg-gray-400 cursor-pointer disabled:cursor-not-allowed"
               >
                 Upload
