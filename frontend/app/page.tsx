@@ -137,7 +137,7 @@ export default function Chat() {
 
       </div>
 
-      <div className="flex flex-1">
+      <div className="flex flex-1 min-h-0">
 
         {/* SIDEBAR */}
         <div className="w-64 bg-white border-r flex flex-col p-4">
@@ -146,7 +146,7 @@ export default function Chat() {
             Documents
           </h2>
 
-          <div className="space-y-2 flex-1 overflow-y-auto">
+          <div className="space-y-2 flex-1 overflow-y-auto min-h-0">
 
             {documents.map((doc, i) => (
               <div
